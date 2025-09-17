@@ -25,7 +25,7 @@ export function ScheduleHeader({ view, onViewChange }: ScheduleHeaderProps) {
               className="flex items-center gap-2"
             >
               <Clock className="h-4 w-4" />
-              當前課程
+              當日課程
             </Button>
             <Button
               variant={view === "full" ? "default" : "outline"}
