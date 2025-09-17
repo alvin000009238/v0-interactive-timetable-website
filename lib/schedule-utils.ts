@@ -76,13 +76,13 @@ export function getDailyScheduleWithBreaks(
 
   // Define break periods between classes
   const breakPeriods = [
-    { after: 1, time: "09:00-09:10", name: "休息" },
-    { after: 2, time: "10:00-10:10", name: "休息" },
-    { after: 3, time: "11:00-11:10", name: "休息" },
+    { after: 1, time: "09:00-09:10", name: "下課" },
+    { after: 2, time: "10:00-10:10", name: "下課" },
+    { after: 3, time: "11:00-11:10", name: "下課" },
     { after: 4, time: "12:00-13:00", name: "午休" },
-    { after: 5, time: "13:50-14:00", name: "休息" },
-    { after: 6, time: "14:50-15:05", name: "休息" },
-    { after: 7, time: "15:55-16:05", name: "休息" },
+    { after: 5, time: "13:50-14:00", name: "下課" },
+    { after: 6, time: "14:50-15:05", name: "下課" },
+    { after: 7, time: "15:55-16:05", name: "下課" },
   ]
 
   for (let period = 1; period <= 8; period++) {
@@ -117,13 +117,13 @@ export function isInBreakPeriod(): { isBreak: boolean; breakType: string; nextPe
 
   // Define break periods with their types and next period
   const breakPeriods = [
-    { start: 9 * 60, end: 9 * 60 + 10, type: "課間休息", nextPeriod: 2 }, // 09:00-09:10
-    { start: 10 * 60, end: 10 * 60 + 10, type: "課間休息", nextPeriod: 3 }, // 10:00-10:10
-    { start: 11 * 60, end: 11 * 60 + 10, type: "課間休息", nextPeriod: 4 }, // 11:00-11:10
+    { start: 9 * 60, end: 9 * 60 + 10, type: "下課時間", nextPeriod: 2 }, // 09:00-09:10
+    { start: 10 * 60, end: 10 * 60 + 10, type: "下課時間", nextPeriod: 3 }, // 10:00-10:10
+    { start: 11 * 60, end: 11 * 60 + 10, type: "下課時間", nextPeriod: 4 }, // 11:00-11:10
     { start: 12 * 60, end: 13 * 60, type: "午休時間", nextPeriod: 5 }, // 12:00-13:00
-    { start: 13 * 60 + 50, end: 14 * 60, type: "課間休息", nextPeriod: 6 }, // 13:50-14:00
-    { start: 14 * 60 + 50, end: 15 * 60 + 5, type: "課間休息", nextPeriod: 7 }, // 14:50-15:05
-    { start: 15 * 60 + 55, end: 16 * 60 + 5, type: "課間休息", nextPeriod: 8 }, // 15:55-16:05
+    { start: 13 * 60 + 50, end: 14 * 60, type: "下課時間", nextPeriod: 6 }, // 13:50-14:00
+    { start: 14 * 60 + 50, end: 15 * 60 + 5, type: "下課時間", nextPeriod: 7 }, // 14:50-15:05
+    { start: 15 * 60 + 55, end: 16 * 60 + 5, type: "下課時間", nextPeriod: 8 }, // 15:55-16:05
   ]
 
   const currentBreak = breakPeriods.find((bp) => currentTimeInMinutes >= bp.start && currentTimeInMinutes < bp.end)
