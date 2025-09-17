@@ -109,6 +109,41 @@ export function getDailyScheduleWithBreaks(
   return scheduleWithBreaks
 }
 
+export function isInBreakPeriod(): { isBreak: boolean; breakType: string; nextPeriod: number | null } {
+  const now = new Date()
+  const currentHour = now.getHours()
+  const currentMinute = now.getMinutes()
+  const currentTimeInMinutes = currentHour * 60 + currentMinute
+
+  // Define break periods with their types and next period
+  const breakPeriods = [
+    { start: 9 * 60, end: 9 * 60 + 10, type: "課間休息", nextPeriod: 2 }, // 09:00-09:10
+    { start: 10 * 60, end: 10 * 60 + 10, type: "課間休息", nextPeriod: 3 }, // 10:00-10:10
+    { start: 11 * 60, end: 11 * 60 + 10, type: "課間休息", nextPeriod: 4 }, // 11:00-11:10
+    { start: 12 * 60, end: 13 * 60, type: "午休時間", nextPeriod: 5 }, // 12:00-13:00
+    { start: 13 * 60 + 50, end: 14 * 60, type: "課間休息", nextPeriod: 6 }, // 13:50-14:00
+    { start: 14 * 60 + 50, end: 15 * 60 + 5, type: "課間休息", nextPeriod: 7 }, // 14:50-15:05
+    { start: 15 * 60 + 55, end: 16 * 60 + 5, type: "課間休息", nextPeriod: 8 }, // 15:55-16:05
+  ]
+
+  const currentBreak = breakPeriods.find((bp) => currentTimeInMinutes >= bp.start && currentTimeInMinutes < bp.end)
+
+  return {
+    isBreak: !!currentBreak,
+    breakType: currentBreak?.type || "",
+    nextPeriod: currentBreak?.nextPeriod || null,
+  }
+}
+
+export function getNextClass(schedule: ScheduleItem[]): ScheduleItem | null {
+  const { day } = getCurrentTime()
+  const breakInfo = isInBreakPeriod()
+
+  if (!day || !breakInfo.isBreak || !breakInfo.nextPeriod) return null
+
+  return schedule.find((item) => item.星期 === day && item.節次 === breakInfo.nextPeriod) || null
+}
+
 export function formatTime(timeString: string): string {
   return timeString
 }

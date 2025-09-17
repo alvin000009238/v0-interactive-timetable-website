@@ -2,13 +2,15 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Clock, BookOpen, Calendar } from "lucide-react"
+import { Clock, BookOpen, Calendar, ArrowRight } from "lucide-react"
 import {
   type ScheduleItem,
   getCurrentClass,
   getCurrentTime,
   getSubjectColor,
   getDailyScheduleWithBreaks,
+  isInBreakPeriod,
+  getNextClass,
 } from "@/lib/schedule-utils"
 import { useEffect, useState } from "react"
 
@@ -18,6 +20,12 @@ interface CurrentClassCardProps {
 
 export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
   const [currentClass, setCurrentClass] = useState<ScheduleItem | null>(null)
+  const [nextClass, setNextClass] = useState<ScheduleItem | null>(null)
+  const [breakInfo, setBreakInfo] = useState<{ isBreak: boolean; breakType: string; nextPeriod: number | null }>({
+    isBreak: false,
+    breakType: "",
+    nextPeriod: null,
+  })
   const [currentTime, setCurrentTime] = useState<{ day: string; period: number | null }>({ day: "", period: null })
   const [time, setTime] = useState(new Date())
 
@@ -25,20 +33,24 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
     const updateCurrentClass = () => {
       const current = getCurrentClass(schedule)
       const timeInfo = getCurrentTime()
+      const breakPeriodInfo = isInBreakPeriod()
+      const next = getNextClass(schedule)
+
       setCurrentClass(current)
       setCurrentTime(timeInfo)
+      setBreakInfo(breakPeriodInfo)
+      setNextClass(next)
     }
 
     const updateTime = () => {
       setTime(new Date())
     }
 
-    // Initial updates
     updateCurrentClass()
     updateTime()
 
-    const timeInterval = setInterval(updateTime, 1000) // Update time every second
-    const classInterval = setInterval(updateCurrentClass, 60000) // Update class every minute
+    const timeInterval = setInterval(updateTime, 1000)
+    const classInterval = setInterval(updateCurrentClass, 60000)
 
     return () => {
       clearInterval(timeInterval)
@@ -84,12 +96,40 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
         <CardHeader className="text-center bg-white border-b">
           <CardTitle className="flex items-center justify-center gap-2 text-2xl text-slate-800 font-bold">
             <BookOpen className="h-6 w-6 text-primary" />
-            {currentClass ? "目前課程" : "目前時間"}
+            {breakInfo.isBreak ? breakInfo.breakType : currentClass ? "目前課程" : "目前時間"}
           </CardTitle>
           <div className="text-sm text-slate-600 font-mono font-medium">{formatCurrentTime(time)}</div>
         </CardHeader>
         <CardContent className="pt-6 space-y-6">
-          {currentClass ? (
+          {breakInfo.isBreak && nextClass ? (
+            <>
+              <div className="text-center">
+                <div className="text-lg text-muted-foreground mb-4">
+                  {breakInfo.breakType === "午休時間" ? "午休時間，下節課程：" : "休息時間，下節課程："}
+                </div>
+                <Badge variant="secondary" className={`text-lg px-4 py-2 ${getSubjectColor(nextClass.科目)}`}>
+                  {nextClass.科目}
+                </Badge>
+              </div>
+
+              <div className="flex items-center justify-center gap-4">
+                <div className="text-center">
+                  <div className="text-sm text-muted-foreground">目前</div>
+                  <div className="text-lg font-semibold text-orange-600">{breakInfo.breakType}</div>
+                </div>
+                <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                <div className="text-center">
+                  <div className="text-sm text-muted-foreground">下節課</div>
+                  <div className="text-lg font-semibold">第 {nextClass.節次} 節</div>
+                </div>
+              </div>
+
+              <div className="text-center">
+                <div className="text-sm text-muted-foreground">下節課時間</div>
+                <div className="text-xl font-semibold">{nextClass.時間}</div>
+              </div>
+            </>
+          ) : currentClass ? (
             <>
               <div className="text-center">
                 <Badge variant="secondary" className={`text-lg px-4 py-2 ${getSubjectColor(currentClass.科目)}`}>
@@ -136,12 +176,21 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
                     ? "bg-gray-50 border-gray-200"
                     : currentClass && currentClass.節次 === item.節次 && currentClass.星期 === item.星期
                       ? "bg-accent/20 border-accent ring-2 ring-accent"
-                      : "bg-white border-border"
+                      : breakInfo.isBreak && nextClass && nextClass.節次 === item.節次 && nextClass.星期 === item.星期
+                        ? "bg-blue-50 border-blue-300 ring-2 ring-blue-300"
+                        : "bg-white border-border"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div className={`text-sm font-medium ${item.isBreak ? "text-gray-500" : "text-foreground"}`}>
                     {item.isBreak ? "休息時間" : `第 ${item.節次} 節`}
+                    {breakInfo.isBreak &&
+                      nextClass &&
+                      !item.isBreak &&
+                      nextClass.節次 === item.節次 &&
+                      nextClass.星期 === item.星期 && (
+                        <span className="ml-2 text-xs text-blue-600 font-semibold">← 下節課</span>
+                      )}
                   </div>
                   <Badge
                     variant={item.isBreak ? "secondary" : "outline"}
