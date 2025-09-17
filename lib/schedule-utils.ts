@@ -144,6 +144,97 @@ export function getNextClass(schedule: ScheduleItem[]): ScheduleItem | null {
   return schedule.find((item) => item.星期 === day && item.節次 === breakInfo.nextPeriod) || null
 }
 
+export function isClassStartingSoon(schedule: ScheduleItem[]): {
+  isStarting: boolean
+  class: ScheduleItem | null
+  minutesUntil: number
+} {
+  const now = new Date()
+  const currentHour = now.getHours()
+  const currentMinute = now.getMinutes()
+  const currentTimeInMinutes = currentHour * 60 + currentMinute
+  const { day } = getCurrentTime()
+
+  if (!day) {
+    return { isStarting: false, class: null, minutesUntil: 0 }
+  }
+
+  // Define period start times in minutes from midnight
+  const periodStartTimes = [
+    { period: 1, start: 8 * 60 + 10 }, // 08:10
+    { period: 2, start: 9 * 60 + 10 }, // 09:10
+    { period: 3, start: 10 * 60 + 10 }, // 10:10
+    { period: 4, start: 11 * 60 + 10 }, // 11:10
+    { period: 5, start: 13 * 60 }, // 13:00
+    { period: 6, start: 14 * 60 }, // 14:00
+    { period: 7, start: 15 * 60 + 5 }, // 15:05
+    { period: 8, start: 16 * 60 + 5 }, // 16:05
+  ]
+
+  // Check each period to see if it's starting within the next 2 minutes
+  for (const periodTime of periodStartTimes) {
+    const minutesUntilStart = periodTime.start - currentTimeInMinutes
+
+    // If class starts within 2 minutes (but not already started)
+    if (minutesUntilStart > 0 && minutesUntilStart <= 2) {
+      const classForPeriod = schedule.find((item) => item.星期 === day && item.節次 === periodTime.period)
+
+      if (classForPeriod) {
+        return {
+          isStarting: true,
+          class: classForPeriod,
+          minutesUntil: minutesUntilStart,
+        }
+      }
+    }
+  }
+
+  return { isStarting: false, class: null, minutesUntil: 0 }
+}
+
+export function didClassJustStart(schedule: ScheduleItem[]): { justStarted: boolean; class: ScheduleItem | null } {
+  const now = new Date()
+  const currentHour = now.getHours()
+  const currentMinute = now.getMinutes()
+  const currentTimeInMinutes = currentHour * 60 + currentMinute
+  const { day } = getCurrentTime()
+
+  if (!day) {
+    return { justStarted: false, class: null }
+  }
+
+  // Define period start times in minutes from midnight
+  const periodStartTimes = [
+    { period: 1, start: 8 * 60 + 10 }, // 08:10
+    { period: 2, start: 9 * 60 + 10 }, // 09:10
+    { period: 3, start: 10 * 60 + 10 }, // 10:10
+    { period: 4, start: 11 * 60 + 10 }, // 11:10
+    { period: 5, start: 13 * 60 }, // 13:00
+    { period: 6, start: 14 * 60 }, // 14:00
+    { period: 7, start: 15 * 60 + 5 }, // 15:05
+    { period: 8, start: 16 * 60 + 5 }, // 16:05
+  ]
+
+  // Check if any class just started (within the last minute)
+  for (const periodTime of periodStartTimes) {
+    const minutesSinceStart = currentTimeInMinutes - periodTime.start
+
+    // If class started within the last minute
+    if (minutesSinceStart >= 0 && minutesSinceStart <= 1) {
+      const classForPeriod = schedule.find((item) => item.星期 === day && item.節次 === periodTime.period)
+
+      if (classForPeriod) {
+        return {
+          justStarted: true,
+          class: classForPeriod,
+        }
+      }
+    }
+  }
+
+  return { justStarted: false, class: null }
+}
+
 export function formatTime(timeString: string): string {
   return timeString
 }

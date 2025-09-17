@@ -2,7 +2,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Clock, BookOpen, Calendar, ArrowRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Clock, BookOpen, Calendar, ArrowRight, Bell, BellOff } from "lucide-react"
 import {
   type ScheduleItem,
   getCurrentClass,
@@ -11,7 +12,14 @@ import {
   getDailyScheduleWithBreaks,
   isInBreakPeriod,
   getNextClass,
+  isClassStartingSoon,
+  didClassJustStart,
 } from "@/lib/schedule-utils"
+import {
+  requestNotificationPermission,
+  sendClassNotification,
+  getNotificationPermissionStatus,
+} from "@/lib/notification-utils"
 import { useEffect, useState } from "react"
 
 interface CurrentClassCardProps {
@@ -28,6 +36,8 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
   })
   const [currentTime, setCurrentTime] = useState<{ day: string; period: number | null }>({ day: "", period: null })
   const [time, setTime] = useState(new Date())
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+  const [lastNotifiedClass, setLastNotifiedClass] = useState<string>("")
 
   useEffect(() => {
     const updateCurrentClass = () => {
@@ -40,23 +50,63 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
       setCurrentTime(timeInfo)
       setBreakInfo(breakPeriodInfo)
       setNextClass(next)
+
+      if (notificationsEnabled) {
+        // Check if a class just started
+        const { justStarted, class: startedClass } = didClassJustStart(schedule)
+        if (justStarted && startedClass) {
+          const classKey = `${startedClass.星期}-${startedClass.節次}-started`
+          if (lastNotifiedClass !== classKey) {
+            sendClassNotification("上課時間到了！", `現在是第 ${startedClass.節次} 節 - ${startedClass.科目}`)
+            setLastNotifiedClass(classKey)
+          }
+        }
+
+        // Check if a class is starting soon
+        const { isStarting, class: upcomingClass, minutesUntil } = isClassStartingSoon(schedule)
+        if (isStarting && upcomingClass) {
+          const classKey = `${upcomingClass.星期}-${upcomingClass.節次}-soon`
+          if (lastNotifiedClass !== classKey) {
+            sendClassNotification(
+              "即將上課提醒",
+              `${minutesUntil} 分鐘後開始第 ${upcomingClass.節次} 節 - ${upcomingClass.科目}`,
+            )
+            setLastNotifiedClass(classKey)
+          }
+        }
+      }
     }
 
     const updateTime = () => {
       setTime(new Date())
     }
 
+    const permissionStatus = getNotificationPermissionStatus()
+    setNotificationsEnabled(permissionStatus.granted)
+
     updateCurrentClass()
     updateTime()
 
     const timeInterval = setInterval(updateTime, 1000)
-    const classInterval = setInterval(updateCurrentClass, 60000)
+    const classInterval = setInterval(updateCurrentClass, 30000) // Check every 30 seconds for more responsive notifications
 
     return () => {
       clearInterval(timeInterval)
       clearInterval(classInterval)
     }
-  }, [schedule])
+  }, [schedule, notificationsEnabled, lastNotifiedClass])
+
+  const toggleNotifications = async () => {
+    if (!notificationsEnabled) {
+      const granted = await requestNotificationPermission()
+      if (granted) {
+        setNotificationsEnabled(true)
+        sendClassNotification("通知已啟用", "您將收到上課時間提醒")
+      }
+    } else {
+      setNotificationsEnabled(false)
+    }
+  }
 
   const formatCurrentTime = (date: Date) => {
     return date.toLocaleString("zh-TW", {
@@ -82,6 +132,14 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
         <CardContent className="text-center space-y-4">
           <div className="text-lg font-mono">{formatCurrentTime(time)}</div>
           <div className="text-muted-foreground">今天是週末，沒有課程安排</div>
+          <Button
+            onClick={toggleNotifications}
+            variant={notificationsEnabled ? "default" : "outline"}
+            className="flex items-center gap-2"
+          >
+            {notificationsEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+            {notificationsEnabled ? "通知已啟用" : "啟用通知"}
+          </Button>
         </CardContent>
       </Card>
     )
@@ -94,10 +152,24 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
       {/* Current Class Card */}
       <Card className="border-2 border-primary/20 shadow-lg">
         <CardHeader className="text-center bg-white border-b">
-          <CardTitle className="flex items-center justify-center gap-2 text-2xl text-slate-800 font-bold">
-            <BookOpen className="h-6 w-6 text-primary" />
-            {breakInfo.isBreak ? breakInfo.breakType : currentClass ? "目前課程" : "目前時間"}
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex-1" />
+            <CardTitle className="flex items-center justify-center gap-2 text-2xl text-slate-800 font-bold">
+              <BookOpen className="h-6 w-6 text-primary" />
+              {breakInfo.isBreak ? breakInfo.breakType : currentClass ? "目前課程" : "目前時間"}
+            </CardTitle>
+            <div className="flex-1 flex justify-end">
+              <Button
+                onClick={toggleNotifications}
+                variant={notificationsEnabled ? "default" : "outline"}
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                {notificationsEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+                <span className="hidden sm:inline">{notificationsEnabled ? "通知已啟用" : "啟用通知"}</span>
+              </Button>
+            </div>
+          </div>
           <div className="text-sm text-slate-600 font-mono font-medium">{formatCurrentTime(time)}</div>
         </CardHeader>
         <CardContent className="pt-6 space-y-6">
