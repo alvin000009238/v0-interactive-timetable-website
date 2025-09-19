@@ -52,12 +52,17 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
       setNextClass(next)
 
       if (notificationsEnabled) {
+        console.log("[v0] Checking for notifications...")
+
         // Check if a class just started
         const { justStarted, class: startedClass } = didClassJustStart(schedule)
         if (justStarted && startedClass) {
           const classKey = `${startedClass.星期}-${startedClass.節次}-started`
+          console.log("[v0] Class just started:", classKey, "Last notified:", lastNotifiedClass)
+
           if (lastNotifiedClass !== classKey) {
-            sendClassNotification("上課時間到了！", `現在是第 ${startedClass.節次} 節 - ${startedClass.科目}`)
+            console.log("[v0] Sending class started notification")
+            sendClassNotification("🔔 上課時間到了！", `現在是第 ${startedClass.節次} 節 - ${startedClass.科目}`)
             setLastNotifiedClass(classKey)
           }
         }
@@ -66,9 +71,12 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
         const { isStarting, class: upcomingClass, minutesUntil } = isClassStartingSoon(schedule)
         if (isStarting && upcomingClass) {
           const classKey = `${upcomingClass.星期}-${upcomingClass.節次}-soon`
+          console.log("[v0] Class starting soon:", classKey, "Minutes until:", minutesUntil)
+
           if (lastNotifiedClass !== classKey) {
+            console.log("[v0] Sending class starting soon notification")
             sendClassNotification(
-              "即將上課提醒",
+              "⏰ 即將上課提醒",
               `${minutesUntil} 分鐘後開始第 ${upcomingClass.節次} 節 - ${upcomingClass.科目}`,
             )
             setLastNotifiedClass(classKey)
@@ -88,7 +96,7 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
     updateTime()
 
     const timeInterval = setInterval(updateTime, 1000)
-    const classInterval = setInterval(updateCurrentClass, 30000) // Check every 30 seconds for more responsive notifications
+    const classInterval = setInterval(updateCurrentClass, 10000)
 
     return () => {
       clearInterval(timeInterval)
@@ -97,13 +105,17 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
   }, [schedule, notificationsEnabled, lastNotifiedClass])
 
   const toggleNotifications = async () => {
+    console.log("[v0] Toggling notifications, current state:", notificationsEnabled)
+
     if (!notificationsEnabled) {
       const granted = await requestNotificationPermission()
       if (granted) {
         setNotificationsEnabled(true)
-        sendClassNotification("通知已啟用", "您將收到上課時間提醒")
+        console.log("[v0] Notifications enabled, sending test notification")
+        sendClassNotification("✅ 通知已啟用", "您將收到上課時間提醒")
       }
     } else {
+      console.log("[v0] Disabling notifications")
       setNotificationsEnabled(false)
     }
   }
