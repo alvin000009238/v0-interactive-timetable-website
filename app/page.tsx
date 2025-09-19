@@ -14,6 +14,13 @@ export default function HomePage() {
   useEffect(() => {
     // Parse the schedule data
     setSchedule(scheduleData as ScheduleItem[])
+
+    // Request notification permission if not already granted
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().then((permission) => {
+        console.log("[PWA] Notification permission:", permission)
+      })
+    }
   }, [])
 
   return (
@@ -33,6 +40,7 @@ export default function HomePage() {
       <footer className="border-t border-border mt-16">
         <div className="container mx-auto px-4 py-6 text-center text-muted-foreground">
           <p>© 2025 互動式課表系統</p>
+          <p className="text-xs mt-2">支援安裝至桌面 • 生產環境支援離線使用</p>
         </div>
       </footer>
     </div>

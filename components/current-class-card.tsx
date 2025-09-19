@@ -177,7 +177,7 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
             <>
               <div className="text-center">
                 <div className="text-lg text-muted-foreground mb-4">
-                  {breakInfo.breakType === "午休時間" ? "午休時間，下節課程：" : "下課時間，下節課程："}
+                  {breakInfo.breakType === "午休時間" ? "午休時間，下節課程：" : "休息時間，下節課程："}
                 </div>
                 <Badge variant="secondary" className={`text-lg px-4 py-2 ${getSubjectColor(nextClass.科目)}`}>
                   {nextClass.科目}
@@ -255,7 +255,7 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
               >
                 <div className="flex items-center gap-3">
                   <div className={`text-sm font-medium ${item.isBreak ? "text-gray-500" : "text-foreground"}`}>
-                    {item.isBreak ? "下課時間" : `第 ${item.節次} 節`}
+                    {item.isBreak ? "休息時間" : `第 ${item.節次} 節`}
                     {breakInfo.isBreak &&
                       nextClass &&
                       !item.isBreak &&

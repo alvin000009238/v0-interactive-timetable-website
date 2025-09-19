@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock } from "lucide-react"
+import { PWAInstallButton } from "@/components/pwa-install-button"
 
 interface ScheduleHeaderProps {
   view: "current" | "full"
@@ -18,23 +19,26 @@ export function ScheduleHeader({ view, onViewChange }: ScheduleHeaderProps) {
             <p className="text-muted-foreground mt-1">v1.0</p>
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              variant={view === "current" ? "default" : "outline"}
-              onClick={() => onViewChange("current")}
-              className="flex items-center gap-2"
-            >
-              <Clock className="h-4 w-4" />
-              當前課程
-            </Button>
-            <Button
-              variant={view === "full" ? "default" : "outline"}
-              onClick={() => onViewChange("full")}
-              className="flex items-center gap-2"
-            >
-              <Calendar className="h-4 w-4" />
-              完整課表
-            </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex gap-2">
+              <Button
+                variant={view === "current" ? "default" : "outline"}
+                onClick={() => onViewChange("current")}
+                className="flex items-center gap-2"
+              >
+                <Clock className="h-4 w-4" />
+                當前課程
+              </Button>
+              <Button
+                variant={view === "full" ? "default" : "outline"}
+                onClick={() => onViewChange("full")}
+                className="flex items-center gap-2"
+              >
+                <Calendar className="h-4 w-4" />
+                完整課表
+              </Button>
+            </div>
+            <PWAInstallButton />
           </div>
         </div>
       </div>
