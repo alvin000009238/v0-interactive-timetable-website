@@ -19,14 +19,6 @@ import {
   getNotificationPermissionStatus,
   initializeBackgroundNotifications,
 } from "@/lib/notification-utils"
-import {
-  getLatency,
-  getTimeOffset,
-  isTimeSynced,
-  getServerTime,
-  getSyncStatusColor,
-  getSyncStatusText,
-} from "@/lib/time-utils"
 import { useEffect, useState } from "react"
 
 interface CurrentClassCardProps {
@@ -44,34 +36,22 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
   const [currentTime, setCurrentTime] = useState<{ day: string; period: number | null }>({ day: "", period: null })
   const [time, setTime] = useState(new Date())
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
-  const [latency, setLatency] = useState(0)
-  const [timeOffset, setTimeOffset] = useState(0)
-  const [synced, setSynced] = useState(false)
 
   useEffect(() => {
-    const updateCurrentClass = async () => {
-      try {
-        const current = await getCurrentClass(schedule)
-        const timeInfo = await getCurrentTime()
-        const breakPeriodInfo = await isInBreakPeriod()
-        const next = await getNextClass(schedule)
+    const updateCurrentClass = () => {
+      const current = getCurrentClass(schedule)
+      const timeInfo = getCurrentTime()
+      const breakPeriodInfo = isInBreakPeriod()
+      const next = getNextClass(schedule)
 
-        setCurrentClass(current)
-        setCurrentTime(timeInfo)
-        setBreakInfo(breakPeriodInfo)
-        setNextClass(next)
-
-        setLatency(getLatency())
-        setTimeOffset(getTimeOffset())
-        setSynced(isTimeSynced())
-      } catch (error) {
-        console.error("[v0] Failed to update current class:", error)
-      }
+      setCurrentClass(current)
+      setCurrentTime(timeInfo)
+      setBreakInfo(breakPeriodInfo)
+      setNextClass(next)
     }
 
     const updateTime = () => {
-      const currentTime = synced ? getServerTime() : new Date()
-      setTime(currentTime)
+      setTime(new Date())
     }
 
     const initNotifications = async () => {
@@ -96,7 +76,7 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
       clearInterval(timeInterval)
       clearInterval(classInterval)
     }
-  }, [schedule, synced])
+  }, [schedule])
 
   const toggleNotifications = async () => {
     console.log("[v0] Toggling background notifications, current state:", notificationsEnabled)
@@ -124,12 +104,6 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
     })
   }
 
-  const SyncDot = () => (
-    <div className="flex items-center gap-2">
-      <div className={`w-2 h-2 rounded-full ${getSyncStatusColor()}`} title={getSyncStatusText()} />
-    </div>
-  )
-
   if (!currentTime.day || currentTime.day === "") {
     return (
       <Card className="w-full max-w-2xl mx-auto">
@@ -140,10 +114,7 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-2 text-lg font-mono">
-            <span>{formatCurrentTime(time)}</span>
-            <SyncDot />
-          </div>
+          <div className="text-lg font-mono">{formatCurrentTime(time)}</div>
           <div className="text-muted-foreground">今天是週末，沒有課程安排</div>
           <Button
             onClick={toggleNotifications}
@@ -183,10 +154,7 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
               </Button>
             </div>
           </div>
-          <div className="flex items-center justify-center gap-2 text-sm text-slate-600 font-mono font-medium">
-            <span>{formatCurrentTime(time)}</span>
-            <SyncDot />
-          </div>
+          <div className="text-sm text-slate-600 font-mono font-medium">{formatCurrentTime(time)}</div>
         </CardHeader>
         <CardContent className="pt-6 space-y-6">
           {breakInfo.isBreak && nextClass ? (

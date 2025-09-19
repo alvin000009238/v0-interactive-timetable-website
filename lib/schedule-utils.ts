@@ -16,11 +16,8 @@ export interface BreakPeriod {
 export const WEEKDAYS = ["星期一", "星期二", "星期三", "星期四", "星期五"]
 export const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8]
 
-import { getServerTime, ensureTimeSync } from "./time-utils"
-
-export async function getCurrentTime(): Promise<{ day: string; period: number | null }> {
-  await ensureTimeSync()
-  const now = getServerTime()
+export function getCurrentTime(): { day: string; period: number | null } {
+  const now = new Date()
   const currentDay = now.getDay() // 0 = Sunday, 1 = Monday, etc.
   const currentHour = now.getHours()
   const currentMinute = now.getMinutes()
@@ -58,8 +55,8 @@ export async function getCurrentTime(): Promise<{ day: string; period: number | 
   }
 }
 
-export async function getCurrentClass(schedule: ScheduleItem[]): Promise<ScheduleItem | null> {
-  const { day, period } = await getCurrentTime()
+export function getCurrentClass(schedule: ScheduleItem[]): ScheduleItem | null {
+  const { day, period } = getCurrentTime()
 
   if (!day || !period) return null
 
@@ -112,9 +109,8 @@ export function getDailyScheduleWithBreaks(
   return scheduleWithBreaks
 }
 
-export async function isInBreakPeriod(): Promise<{ isBreak: boolean; breakType: string; nextPeriod: number | null }> {
-  await ensureTimeSync()
-  const now = getServerTime()
+export function isInBreakPeriod(): { isBreak: boolean; breakType: string; nextPeriod: number | null } {
+  const now = new Date()
   const currentHour = now.getHours()
   const currentMinute = now.getMinutes()
   const currentTimeInMinutes = currentHour * 60 + currentMinute
@@ -139,9 +135,9 @@ export async function isInBreakPeriod(): Promise<{ isBreak: boolean; breakType: 
   }
 }
 
-export async function getNextClass(schedule: ScheduleItem[]): Promise<ScheduleItem | null> {
-  const { day } = await getCurrentTime()
-  const breakInfo = await isInBreakPeriod()
+export function getNextClass(schedule: ScheduleItem[]): ScheduleItem | null {
+  const { day } = getCurrentTime()
+  const breakInfo = isInBreakPeriod()
 
   if (!day || !breakInfo.isBreak || !breakInfo.nextPeriod) return null
 
