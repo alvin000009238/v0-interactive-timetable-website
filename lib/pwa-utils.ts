@@ -12,6 +12,7 @@ export interface BeforeInstallPromptEvent extends Event {
 export class PWAManager {
   private deferredPrompt: BeforeInstallPromptEvent | null = null
   private isInstalled = false
+  private swRegistration: ServiceWorkerRegistration | null = null
 
   constructor() {
     this.init()
@@ -29,12 +30,7 @@ export class PWAManager {
         console.log("[PWA] Install prompt available")
       })
 
-      // Only register service worker in production
-      if (process.env.NODE_ENV === "production") {
-        this.registerServiceWorker()
-      } else {
-        console.log("[PWA] Service worker disabled in development/preview")
-      }
+      this.registerServiceWorker()
     }
   }
 
@@ -45,6 +41,7 @@ export class PWAManager {
           scope: "/",
         })
 
+        this.swRegistration = registration
         console.log("[PWA] Service Worker registered:", registration)
 
         registration.addEventListener("updatefound", () => {
@@ -86,6 +83,31 @@ export class PWAManager {
 
   isAppInstalled(): boolean {
     return this.isInstalled
+  }
+
+  async scheduleNotifications(schedule: any[], enabled: boolean) {
+    if (!this.swRegistration) {
+      console.log("[PWA] Service worker not registered")
+      return
+    }
+
+    try {
+      // Send schedule data to service worker
+      if (this.swRegistration.active) {
+        this.swRegistration.active.postMessage({
+          type: "SCHEDULE_NOTIFICATIONS",
+          schedule,
+          enabled,
+        })
+        console.log("[PWA] Notifications scheduled in service worker")
+      }
+    } catch (error) {
+      console.error("[PWA] Failed to schedule notifications:", error)
+    }
+  }
+
+  getServiceWorkerRegistration(): ServiceWorkerRegistration | null {
+    return this.swRegistration
   }
 }
 

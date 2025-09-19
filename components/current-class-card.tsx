@@ -12,13 +12,12 @@ import {
   getDailyScheduleWithBreaks,
   isInBreakPeriod,
   getNextClass,
-  isClassStartingSoon,
-  didClassJustStart,
 } from "@/lib/schedule-utils"
 import {
-  requestNotificationPermission,
-  sendClassNotification,
+  toggleBackgroundNotifications,
+  areBackgroundNotificationsEnabled,
   getNotificationPermissionStatus,
+  initializeBackgroundNotifications,
 } from "@/lib/notification-utils"
 import { useEffect, useState } from "react"
 
@@ -37,7 +36,6 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
   const [currentTime, setCurrentTime] = useState<{ day: string; period: number | null }>({ day: "", period: null })
   const [time, setTime] = useState(new Date())
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
-  const [lastNotifiedClass, setLastNotifiedClass] = useState<string>("")
 
   useEffect(() => {
     const updateCurrentClass = () => {
@@ -50,48 +48,24 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
       setCurrentTime(timeInfo)
       setBreakInfo(breakPeriodInfo)
       setNextClass(next)
-
-      if (notificationsEnabled) {
-        console.log("[v0] Checking for notifications...")
-
-        // Check if a class just started
-        const { justStarted, class: startedClass } = didClassJustStart(schedule)
-        if (justStarted && startedClass) {
-          const classKey = `${startedClass.星期}-${startedClass.節次}-started`
-          console.log("[v0] Class just started:", classKey, "Last notified:", lastNotifiedClass)
-
-          if (lastNotifiedClass !== classKey) {
-            console.log("[v0] Sending class started notification")
-            sendClassNotification("🔔 上課時間到了！", `現在是第 ${startedClass.節次} 節 - ${startedClass.科目}`)
-            setLastNotifiedClass(classKey)
-          }
-        }
-
-        // Check if a class is starting soon
-        const { isStarting, class: upcomingClass, minutesUntil } = isClassStartingSoon(schedule)
-        if (isStarting && upcomingClass) {
-          const classKey = `${upcomingClass.星期}-${upcomingClass.節次}-soon`
-          console.log("[v0] Class starting soon:", classKey, "Minutes until:", minutesUntil)
-
-          if (lastNotifiedClass !== classKey) {
-            console.log("[v0] Sending class starting soon notification")
-            sendClassNotification(
-              "⏰ 即將上課提醒",
-              `${minutesUntil} 分鐘後開始第 ${upcomingClass.節次} 節 - ${upcomingClass.科目}`,
-            )
-            setLastNotifiedClass(classKey)
-          }
-        }
-      }
     }
 
     const updateTime = () => {
       setTime(new Date())
     }
 
-    const permissionStatus = getNotificationPermissionStatus()
-    setNotificationsEnabled(permissionStatus.granted)
+    const initNotifications = async () => {
+      const enabled = areBackgroundNotificationsEnabled()
+      const permissionStatus = getNotificationPermissionStatus()
 
+      setNotificationsEnabled(enabled && permissionStatus.granted)
+
+      if (enabled && permissionStatus.granted) {
+        await initializeBackgroundNotifications()
+      }
+    }
+
+    initNotifications()
     updateCurrentClass()
     updateTime()
 
@@ -102,21 +76,19 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
       clearInterval(timeInterval)
       clearInterval(classInterval)
     }
-  }, [schedule, notificationsEnabled, lastNotifiedClass])
+  }, [schedule])
 
   const toggleNotifications = async () => {
-    console.log("[v0] Toggling notifications, current state:", notificationsEnabled)
+    console.log("[v0] Toggling background notifications, current state:", notificationsEnabled)
 
-    if (!notificationsEnabled) {
-      const granted = await requestNotificationPermission()
-      if (granted) {
-        setNotificationsEnabled(true)
-        console.log("[v0] Notifications enabled, sending test notification")
-        sendClassNotification("✅ 通知已啟用", "您將收到上課時間提醒")
+    try {
+      const success = await toggleBackgroundNotifications(!notificationsEnabled)
+      if (success) {
+        setNotificationsEnabled(!notificationsEnabled)
+        console.log("[v0] Background notifications toggled successfully")
       }
-    } else {
-      console.log("[v0] Disabling notifications")
-      setNotificationsEnabled(false)
+    } catch (error) {
+      console.error("[v0] Failed to toggle notifications:", error)
     }
   }
 
@@ -150,7 +122,7 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
             className="flex items-center gap-2"
           >
             {notificationsEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
-            {notificationsEnabled ? "通知已啟用" : "啟用通知"}
+            {notificationsEnabled ? "背景通知已啟用" : "啟用背景通知"}
           </Button>
         </CardContent>
       </Card>
@@ -178,7 +150,7 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
                 className="flex items-center gap-2"
               >
                 {notificationsEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
-                <span className="hidden sm:inline">{notificationsEnabled ? "通知已啟用" : "啟用通知"}</span>
+                <span className="hidden sm:inline">{notificationsEnabled ? "背景通知已啟用" : "啟用背景通知"}</span>
               </Button>
             </div>
           </div>
@@ -243,6 +215,7 @@ export function CurrentClassCard({ schedule }: CurrentClassCardProps) {
         </CardContent>
       </Card>
 
+      {/* Daily Schedule Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-center gap-2 text-xl">

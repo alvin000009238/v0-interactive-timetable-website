@@ -1,3 +1,6 @@
+import scheduleData from "../data/schedule.json"
+import { pwaManager } from "./pwa-utils"
+
 export interface NotificationPermission {
   granted: boolean
   denied: boolean
@@ -96,5 +99,39 @@ export function getNotificationPermissionStatus(): NotificationPermission {
     granted: Notification.permission === "granted",
     denied: Notification.permission === "denied",
     default: Notification.permission === "default",
+  }
+}
+
+export async function toggleBackgroundNotifications(enabled: boolean): Promise<boolean> {
+  console.log("[v0] Toggling background notifications:", enabled)
+
+  if (enabled) {
+    const hasPermission = await requestNotificationPermission()
+    if (!hasPermission) {
+      return false
+    }
+  }
+
+  // Schedule notifications in service worker
+  await pwaManager.scheduleNotifications(scheduleData, enabled)
+
+  // Store preference
+  if (typeof window !== "undefined") {
+    localStorage.setItem("notifications-enabled", enabled.toString())
+  }
+
+  return true
+}
+
+export function areBackgroundNotificationsEnabled(): boolean {
+  if (typeof window === "undefined") return false
+  return localStorage.getItem("notifications-enabled") === "true"
+}
+
+export async function initializeBackgroundNotifications() {
+  const enabled = areBackgroundNotificationsEnabled()
+  if (enabled && Notification.permission === "granted") {
+    await pwaManager.scheduleNotifications(scheduleData, true)
+    console.log("[v0] Background notifications initialized")
   }
 }
