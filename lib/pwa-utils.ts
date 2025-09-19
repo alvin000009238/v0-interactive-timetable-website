@@ -30,7 +30,11 @@ export class PWAManager {
         console.log("[PWA] Install prompt available")
       })
 
-      this.registerServiceWorker()
+      if (process.env.NODE_ENV === "production") {
+        this.registerServiceWorker()
+      } else {
+        console.log("[PWA] Service worker registration skipped in development/preview")
+      }
     }
   }
 
@@ -86,6 +90,11 @@ export class PWAManager {
   }
 
   async scheduleNotifications(schedule: any[], enabled: boolean) {
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[PWA] Service worker notifications not available in development/preview")
+      return
+    }
+
     if (!this.swRegistration) {
       console.log("[PWA] Service worker not registered")
       return
