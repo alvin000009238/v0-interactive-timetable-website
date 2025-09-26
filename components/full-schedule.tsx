@@ -41,7 +41,7 @@ export function FullSchedule({ schedule }: FullScheduleProps) {
           <CardTitle className="text-center text-2xl">完整課表</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr>
@@ -91,6 +91,60 @@ export function FullSchedule({ schedule }: FullScheduleProps) {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="md:hidden space-y-4">
+            {WEEKDAYS.map((day) => {
+              const daySchedule = getScheduleByDay(schedule, day)
+              return (
+                <Card key={day} className="border-l-4 border-l-primary">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg font-semibold text-primary">{day}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {PERIODS.map((period) => {
+                      const classItem = daySchedule.find((item) => item.節次 === period)
+                      const isCurrent = isCurrentClass(day, period)
+
+                      return (
+                        <div
+                          key={period}
+                          className={`flex items-center justify-between p-3 rounded-lg border ${
+                            isCurrent
+                              ? "bg-accent/20 border-accent shadow-sm ring-1 ring-accent/50"
+                              : "bg-card border-border"
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div
+                              className={`text-sm font-medium px-2 py-1 rounded ${
+                                isCurrent ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              第{period}節
+                            </div>
+                            {classItem && (
+                              <div className="flex flex-col">
+                                <Badge
+                                  variant="outline"
+                                  className={`text-xs mb-1 ${getSubjectColor(classItem.科目)} ${
+                                    isCurrent ? "ring-1 ring-accent" : ""
+                                  }`}
+                                >
+                                  {classItem.科目}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">{classItem.時間}</span>
+                              </div>
+                            )}
+                          </div>
+                          {!classItem && <span className="text-sm text-muted-foreground">無課程</span>}
+                        </div>
+                      )
+                    })}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         </CardContent>
       </Card>
